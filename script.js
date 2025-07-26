@@ -5,14 +5,14 @@ const checkButton = document.getElementById('check-btn');
 const solveButton = document.getElementById('solve-btn');
 const undoButton = document.getElementById('undo-btn');
 const redoButton = document.getElementById('redo-btn');
-const notesModeButton = document.getElementById('notes-mode-btn');
+// const notesModeButton = document.getElementById('notes-mode-btn'); // REMOVED: Notes Mode button
 const hintButton = document.getElementById('hint-btn');
-const darkModeToggle = document.getElementById('dark-mode-toggle'); // New
+const darkModeToggle = document.getElementById('dark-mode-toggle');
 const difficultyRadios = document.querySelectorAll('input[name="difficulty"]');
 const errorMessage = document.getElementById('error-message');
 const statusMessage = document.getElementById('status-message');
 const timerDisplay = document.getElementById('timer');
-const difficultyRatingDisplay = document.getElementById('difficulty-rating'); // New
+const difficultyRatingDisplay = document.getElementById('difficulty-rating');
 const numberInputPad = document.querySelector('.number-input-pad');
 const winModal = new bootstrap.Modal(document.getElementById('winModal'));
 const finalTimeDisplay = document.getElementById('final-time');
@@ -24,14 +24,20 @@ const loadPuzzleButton = document.getElementById('load-puzzle-btn');
 const getPuzzleStringButton = document.getElementById('get-puzzle-string-btn');
 const puzzleStringOutput = document.getElementById('puzzle-string-output');
 
+// New elements for game start/pause functionality
+const startGameButton = document.getElementById('start-game-btn'); // New
+const additionalControls = document.querySelector('.additional-controls'); // New
+const numberInputPadContainer = document.querySelector('.number-input-pad'); // New
+const startOverlay = document.getElementById('start-overlay'); // New
+
 let currentBoard = []; // User's current input, including their numbers
 let initialBoard = []; // The generated puzzle (fixed numbers), used for reset
 let solvedBoard = [];  // The complete, solved board for validation/hints
 let selectedCell = { row: -1, col: -1 };
 let timerInterval;
 let seconds = 0;
-let gameStarted = false;
-let notesMode = false;
+let gameStarted = false; // Initial state: game is not started
+// let notesMode = false; // REMOVED: Notes Mode flag
 
 // History for Undo/Redo
 // Stores objects like: { row, col, oldValue, newValue, isPencilMarkChange }
@@ -39,10 +45,10 @@ let history = [];
 let historyPointer = -1;
 
 // Stores notes: { "row-col": [num1, num2, ...], ... } (user's pencil marks)
-let cellNotes = {};
+// let cellNotes = {}; // REMOVED: cellNotes for pencil marks
 
 // Stores candidates: { "row-col": Set<num1, num2, ...>, ... } (auto-generated candidates for empty cells)
-let cellCandidates = {};
+let cellCandidates = {}; // Kept for hint/solver logic, but not displayed to user directly
 
 // Difficulty rating based on solving techniques
 const SOLVER_TECHNIQUES = {
@@ -157,17 +163,17 @@ function removeNumbers(board, difficulty) {
 
             // Attempt to solve using basic techniques first for rating
             if (applyNakedSingles(tempSolution, currentPuzzleCandidates) || applyHiddenSingles(tempSolution, currentPuzzleCandidates)) {
-                 tempSolverRating = Math.max(tempSolverRating, SOLVER_TECHNIQUES.NAKED_SINGLE); // If solved with easy, it's easy
-                 if (isBoardFull(tempSolution) && checkBoardForSolver(tempSolution, solvedBoard)) { // If fully solved by just singles
-                     solutionFound = true;
-                 }
+                tempSolverRating = Math.max(tempSolverRating, SOLVER_TECHNIQUES.NAKED_SINGLE); // If solved with easy, it's easy
+                if (isBoardFull(tempSolution) && checkBoardForSolver(tempSolution, solvedBoard)) { // If fully solved by just singles
+                    solutionFound = true;
+                }
             }
             // If not solved by singles, try full backtracking (which implies higher difficulty)
             if (!solutionFound) {
-                 if (fillBoard(tempBoardCopy)) { // Use original fillBoard for full solve
-                     solutionFound = true;
-                     tempSolverRating = Math.max(tempSolverRating, SOLVER_TECHNIQUES.HIDDEN_PAIR); // Assuming backtracking implies harder techniques
-                 }
+                if (fillBoard(tempBoardCopy)) { // Use original fillBoard for full solve
+                    solutionFound = true;
+                    tempSolverRating = Math.max(tempSolverRating, SOLVER_TECHNIQUES.HIDDEN_PAIR); // Assuming backtracking implies harder techniques
+                }
             }
 
             if (!solutionFound) { // If it becomes unsolvable, revert
@@ -229,19 +235,22 @@ function updateTimerDisplay() {
 
 // --- Local Storage ---
 function saveGame() {
-    if (!gameStarted) return; // Only save active games
+    // Only save if a game is active or if it was explicitly started
+    if (!gameStarted && !localStorage.getItem('sudokuMasterGame')) return;
+
     const gameState = {
         currentBoard: currentBoard,
         initialBoard: initialBoard,
         solvedBoard: solvedBoard,
         seconds: seconds,
         difficulty: document.querySelector('input[name="difficulty"]:checked')?.value || 'easy',
-        notesData: getNotesData(), // Store user's pencil marks
+        // notesData: getNotesData(), // REMOVED: notesData
         selectedCell: selectedCell,
-        history: history, // Save history for undo/redo
+        history: history,
         historyPointer: historyPointer,
         darkMode: document.body.classList.contains('dark-mode'),
-        puzzleSolverRating: puzzleSolverRating // Save the estimated difficulty
+        puzzleSolverRating: puzzleSolverRating,
+        gameStarted: gameStarted // Save gameStarted state
     };
     localStorage.setItem('sudokuMasterGame', JSON.stringify(gameState));
 }
@@ -256,10 +265,11 @@ function loadGame() {
             solvedBoard = gameState.solvedBoard;
             seconds = gameState.seconds || 0;
             selectedCell = gameState.selectedCell || { row: -1, col: -1 };
-            cellNotes = gameState.notesData || {}; // Load notes
-            history = gameState.history || []; // Load history
+            // cellNotes = gameState.notesData || {}; // REMOVED: cellNotes loading
+            history = gameState.history || [];
             historyPointer = gameState.historyPointer !== undefined ? gameState.historyPointer : -1;
             puzzleSolverRating = gameState.puzzleSolverRating || SOLVER_TECHNIQUES.DEFAULT;
+            gameStarted = gameState.gameStarted !== undefined ? gameState.gameStarted : false; // Load gameStarted state
 
             const savedDifficulty = gameState.difficulty || 'easy';
             const difficultyRadio = document.getElementById(`difficulty${savedDifficulty.charAt(0).toUpperCase() + savedDifficulty.slice(1)}`);
@@ -267,25 +277,31 @@ function loadGame() {
                 difficultyRadio.checked = true;
             }
 
-            // Load dark mode preference
             if (gameState.darkMode) {
                 document.body.classList.add('dark-mode');
             } else {
                 document.body.classList.remove('dark-mode');
             }
 
-
-            renderBoard(currentBoard); // Pass currentBoard, updateCellDisplay will handle values/notes
-            startTimer();
-            gameStarted = true;
-            statusMessage.textContent = 'Game loaded!';
-            updateUndoRedoButtons();
+            renderBoard(currentBoard); // This will update visuals but not necessarily enable interaction
             updateDifficultyRatingDisplay();
-            recalculateAllCandidates(); // Recalculate candidates after loading
+            updateUndoRedoButtons();
+            recalculateAllCandidates();
+            
+            // Crucial: Set game state based on loaded 'gameStarted'
+            if (gameStarted) {
+                startTimer();
+                statusMessage.textContent = 'Game loaded!';
+                toggleGameControls(true); // Enable controls
+            } else {
+                stopTimer(); // Ensure timer is stopped if not started
+                statusMessage.textContent = 'Game loaded. Click Start Game to continue!';
+                toggleGameControls(false); // Keep controls disabled
+            }
             return true;
         } catch (e) {
             console.error("Error loading game from local storage:", e);
-            localStorage.removeItem('sudokuMasterGame'); // Clear corrupted data
+            localStorage.removeItem('sudokuMasterGame');
             return false;
         }
     }
@@ -303,66 +319,71 @@ function initializeGame(difficulty, customPuzzleString = null) {
     stopTimer();
     seconds = 0;
     updateTimerDisplay();
-    gameStarted = true;
-    history = []; // Clear history for new game
+    gameStarted = false; // Initially not started until user clicks Start/New Game
+    history = [];
     historyPointer = -1;
     updateUndoRedoButtons();
-    notesMode = false;
-    notesModeButton.classList.remove('active');
-    removeConflictHighlights(); // Clear all error/conflict highlights
-    cellNotes = {}; // Clear notes for new game
+    // notesMode = false; // REMOVED: notesMode
+    // notesModeButton.classList.remove('active'); // REMOVED: notesMode button class
+    removeConflictHighlights();
+    // cellNotes = {}; // REMOVED: cellNotes
     cellCandidates = {}; // Clear candidates for new game
-    puzzleSolverRating = SOLVER_TECHNIQUES.DEFAULT; // Reset rating
+    puzzleSolverRating = SOLVER_TECHNIQUES.DEFAULT;
+
+    // Reset selected cell on new game
+    selectedCell = { row: -1, col: -1 };
 
     if (customPuzzleString) {
         const parsedPuzzle = parsePuzzleString(customPuzzleString);
         if (!parsedPuzzle) {
             errorMessage.textContent = 'Invalid puzzle string. Must be 81 digits (0-9).';
+            renderBoard(Array.from({ length: 9 }, () => Array(9).fill(0))); // Render empty grid if invalid
+            toggleGameControls(false); // Keep controls disabled for invalid puzzle
             return;
         }
-        // Validate custom puzzle: check for initial conflicts, solvability, and uniqueness (basic)
         const initialConflicts = getConflicts(parsedPuzzle);
         if (initialConflicts.length > 0) {
             errorMessage.textContent = 'This puzzle has initial conflicts. Please correct them.';
-            initialBoard = parsedPuzzle; // Set initialBoard to display conflicts
-            currentBoard = JSON.parse(JSON.stringify(initialBoard)); // User's board also shows it
-            renderBoard(currentBoard); // Render to show conflicts
-            gameStarted = false; // Don't start timer for invalid puzzle
+            initialBoard = parsedPuzzle;
+            currentBoard = JSON.parse(JSON.stringify(initialBoard));
+            renderBoard(currentBoard);
+            toggleGameControls(false); // Keep controls disabled for conflicting puzzle
             return;
         }
 
         initialBoard = parsedPuzzle;
         solvedBoard = JSON.parse(JSON.stringify(initialBoard));
-        if (!fillBoard(solvedBoard)) { // Try to solve the provided puzzle
+        if (!fillBoard(solvedBoard)) {
             errorMessage.textContent = 'This custom puzzle has no solution or is invalid.';
-            gameStarted = false;
+            renderBoard(initialBoard); // Show the invalid puzzle
+            toggleGameControls(false); // Keep controls disabled
             return;
         }
-        currentBoard = JSON.parse(JSON.stringify(initialBoard)); // User's board starts with the custom puzzle
-        statusMessage.textContent = 'Custom puzzle loaded!';
-        // For custom puzzles, estimate difficulty based on generated solution
+        currentBoard = JSON.parse(JSON.stringify(initialBoard));
+        statusMessage.textContent = 'Custom puzzle loaded. Click Start Game to begin!';
         const tempSolverBoard = JSON.parse(JSON.stringify(initialBoard));
         puzzleSolverRating = estimatePuzzleDifficulty(tempSolverBoard);
 
-
     } else {
-        // Generate a new standard puzzle
         solvedBoard = generateFullBoard();
         initialBoard = JSON.parse(JSON.stringify(solvedBoard));
-        removeNumbers(initialBoard, difficulty); // Remove numbers from the initialBoard (the puzzle)
-        currentBoard = JSON.parse(JSON.stringify(initialBoard)); // User's board starts with the generated puzzle
+        removeNumbers(initialBoard, difficulty);
+        currentBoard = JSON.parse(JSON.stringify(initialBoard));
+        statusMessage.textContent = 'Puzzle generated. Click Start Game to begin!';
     }
 
-    renderBoard(currentBoard);
+    renderBoard(currentBoard); // Render board, but it will be disabled by default
     updateDifficultyRatingDisplay();
     recalculateAllCandidates(); // Calculate candidates for the new puzzle
-    startTimer();
     clearSavedGame(); // Clear previous game save on new game
+    toggleGameControls(false); // Ensure controls are initially disabled
 }
 
 function renderBoard(boardToRender) {
     sudokuGrid.innerHTML = '';
-    sudokuGrid.style.pointerEvents = gameStarted ? 'auto' : 'none'; // Disable input on game end
+    // Grid itself will be enabled/disabled via a class on its parent
+    // The overlay will handle visual feedback
+    sudokuGrid.style.pointerEvents = 'auto'; // Reset pointer events on grid itself for overlay interaction
 
     for (let r = 0; r < 9; r++) {
         for (let c = 0; c < 9; c++) {
@@ -376,7 +397,7 @@ function renderBoard(boardToRender) {
             valueSpan.classList.add('cell-value');
             cell.appendChild(valueSpan);
 
-            // Pencil marks display
+            // Pencil marks display - KEPT IN HTML/CSS BUT NOT USED IN JS LOGIC
             const pencilMarksDiv = document.createElement('div');
             pencilMarksDiv.classList.add('pencil-marks');
             for (let i = 1; i <= 9; i++) {
@@ -388,10 +409,10 @@ function renderBoard(boardToRender) {
 
             if (initialBoard[r][c] !== 0) {
                 cell.classList.add('fixed-cell');
-                cell.style.pointerEvents = 'none'; // Fixed cells cannot be clicked/edited
-            } else {
-                cell.addEventListener('click', handleCellClick);
+                // Even fixed cells need click listener for selection if game is not started,
+                // but their values can't be changed. Interaction is controlled by overlay/gameStarted.
             }
+            cell.addEventListener('click', handleCellClick); // All cells listen for clicks
 
             // --- ADDED CODE FOR PROGRAMMATIC BORDER CLASSES ---
             // Apply thick right border
@@ -415,6 +436,8 @@ function renderBoard(boardToRender) {
             sudokuGrid.appendChild(cell);
         }
     }
+    // Append the overlay after all cells are added to ensure it's on top
+    sudokuGrid.appendChild(startOverlay);
     updateCellDisplay(); // Ensure visual state is accurate after render
     highlightSelectedCell(); // Apply initial highlights
 }
@@ -425,12 +448,12 @@ function updateCellDisplay() {
         const r = parseInt(cell.dataset.row);
         const c = parseInt(cell.dataset.col);
         const valueSpan = cell.querySelector('.cell-value');
-        const pencilMarksDiv = cell.querySelector('.pencil-marks');
+        const pencilMarksDiv = cell.querySelector('.pencil-marks'); // Still exists in HTML, but not used
 
         // Clear all previous content and visual state related to values/notes
         valueSpan.textContent = '';
         cell.classList.remove('conflict', 'error-check');
-        // Clear pencil marks
+        // Clear pencil marks (even though not used, good to reset)
         Array.from(pencilMarksDiv.children).forEach(mark => mark.textContent = '');
 
         if (initialBoard[r][c] !== 0) {
@@ -442,18 +465,9 @@ function updateCellDisplay() {
             valueSpan.textContent = currentBoard[r][c];
             cell.classList.remove('fixed-cell');
         } else {
-            // Empty, show pencil marks (combining user notes and auto candidates)
+            // Empty cell - no pencil marks displayed in this version
             cell.classList.remove('fixed-cell');
-            const userNotes = new Set(getNotesForCell(r, c));
-            const autoCandidates = cellCandidates[`${r}-${c}`] || new Set();
-
-            // Display user notes if they exist, otherwise display auto candidates
-            let marksToDisplay = userNotes.size > 0 ? userNotes : autoCandidates;
-
-            marksToDisplay.forEach(markNum => {
-                const markSpan = pencilMarksDiv.children[markNum - 1]; // Array is 0-indexed
-                if (markSpan) markSpan.textContent = markNum;
-            });
+            // The pencilMarksDiv will remain empty
         }
     });
     // Re-apply selection and group/same-number highlights
@@ -479,16 +493,51 @@ function createNumberInputPad() {
     numberInputPad.appendChild(clearButton);
 }
 
+// Function to toggle the visibility and interactivity of game controls
+function toggleGameControls(enabled) {
+    // Buttons in game-controls
+    startGameButton.style.display = enabled ? 'none' : 'inline-block';
+    newGameButton.style.display = enabled ? 'inline-block' : 'none';
+    resetButton.style.display = enabled ? 'inline-block' : 'none';
+    checkButton.style.display = enabled ? 'inline-block' : 'none';
+    solveButton.style.display = enabled ? 'inline-block' : 'none';
+
+    // Additional controls and number input pad
+    additionalControls.style.display = enabled ? 'flex' : 'none';
+    numberInputPadContainer.style.display = enabled ? 'flex' : 'none';
+
+    // Sudoku grid interaction
+    if (enabled) {
+        sudokuGrid.classList.remove('disabled-grid');
+        sudokuGrid.style.pointerEvents = 'auto'; // Enable interactions
+        startOverlay.style.display = 'none'; // Hide overlay
+    } else {
+        sudokuGrid.classList.add('disabled-grid');
+        sudokuGrid.style.pointerEvents = 'none'; // Disable interactions (overlay covers it)
+        startOverlay.style.display = 'flex'; // Show overlay
+    }
+    
+    // Disable difficulty radios when game is active to prevent mid-game difficulty change
+    difficultyRadios.forEach(radio => radio.disabled = enabled);
+
+    // Always keep dark mode and custom puzzle section visible
+    darkModeToggle.style.display = 'inline-block';
+
+    // Update undo/redo buttons state based on gameStarted
+    updateUndoRedoButtons();
+}
+
 // --- Event Handlers ---
 
 function handleCellClick(event) {
-    const cell = event.target.closest('.sudoku-cell');
-    if (!cell) return;
-
-    // Prevent selection if game is won or if an invalid custom puzzle was loaded
-    if (!gameStarted && (isBoardFull(currentBoard) && checkBoard(currentBoard) || getConflicts(initialBoard).length > 0)) {
+    // Only allow cell interaction if the game has started
+    if (!gameStarted) {
+        errorMessage.textContent = "Click 'Start Game' to begin interacting with the puzzle.";
         return;
     }
+
+    const cell = event.target.closest('.sudoku-cell');
+    if (!cell) return;
 
     selectedCell.row = parseInt(cell.dataset.row);
     selectedCell.col = parseInt(cell.dataset.col);
@@ -497,6 +546,11 @@ function handleCellClick(event) {
 }
 
 function handleNumberInput(num) {
+    if (!gameStarted) {
+        errorMessage.textContent = "Click 'Start Game' to input numbers.";
+        return;
+    }
+
     if (selectedCell.row === -1 || selectedCell.col === -1) {
         errorMessage.textContent = 'Please select a cell first.';
         return;
@@ -511,67 +565,37 @@ function handleNumberInput(num) {
         return;
     }
 
-    if (notesMode) {
-        // Handle pencil marks
-        const oldNotes = getNotesForCell(r, c);
-        let newNotes = new Set(oldNotes);
+    // Handle main value input
+    const oldValue = currentBoard[r][c];
+    const newValue = num;
 
-        if (num === 0) { // Clear all notes
-            newNotes.clear();
-        } else {
-            // If main value exists, don't allow notes
-            if (currentBoard[r][c] !== 0) {
-                errorMessage.textContent = 'Clear the main value before adding notes.';
-                return;
-            }
-            if (newNotes.has(num)) {
-                newNotes.delete(num);
-            } else {
-                newNotes.add(num);
+    if (oldValue !== newValue) {
+        addHistory(r, c, oldValue, newValue, false); // False for main value change
+        currentBoard[r][c] = newValue;
+
+        // If a value is entered, clear any notes for that cell (even though notes aren't user-facing)
+        // setNotesForCell(r, c, []); // REMOVED: No user notes
+
+        // Update candidates for affected cells
+        recalculateAffectedCandidates(r, c, newValue);
+        updateCellDisplay(); // This will also trigger conflict highlighting
+        clearMessages();
+
+        // Check for conflicts immediately after placing the number
+        const conflicts = getConflicts(currentBoard);
+        if (conflicts.length === 0 && isBoardFull(currentBoard)) {
+            // Only check for win if no conflicts and board is full
+            if (checkBoard(currentBoard)) {
+                handleWinGame();
             }
         }
-        const newNotesArray = Array.from(newNotes).sort((a, b) => a - b);
-
-        if (JSON.stringify(oldNotes) !== JSON.stringify(newNotesArray)) { // Only add to history if changed
-            addHistory(r, c, oldNotes, newNotesArray, true); // True for pencil mark change
-            setNotesForCell(r, c, newNotesArray);
-            updateCellDisplay();
-            clearMessages();
-            saveGame();
-        }
-    } else {
-        // Handle main value input
-        const oldValue = currentBoard[r][c];
-        const newValue = num;
-
-        if (oldValue !== newValue) {
-            addHistory(r, c, oldValue, newValue, false); // False for main value change
-            currentBoard[r][c] = newValue;
-
-            // If a value is entered, clear any notes for that cell
-            if (newValue !== 0) {
-                setNotesForCell(r, c, []);
-            }
-            // Update candidates for affected cells
-            recalculateAffectedCandidates(r, c, newValue);
-            updateCellDisplay(); // This will also trigger conflict highlighting
-            clearMessages();
-
-            // Check for conflicts immediately after placing the number
-            const conflicts = getConflicts(currentBoard);
-            if (conflicts.length === 0 && isBoardFull(currentBoard)) {
-                // Only check for win if no conflicts and board is full
-                if (checkBoard(currentBoard)) {
-                    handleWinGame();
-                }
-            }
-            saveGame();
-        }
+        saveGame();
     }
 }
 
 // Keyboard input handling (1-9, Arrow keys, Backspace, Delete)
 document.addEventListener('keydown', (event) => {
+    if (!gameStarted) return; // Only allow keyboard input if game has started
     if (selectedCell.row === -1 || selectedCell.col === -1) return;
 
     const currentRow = selectedCell.row;
@@ -585,10 +609,8 @@ document.addEventListener('keydown', (event) => {
     } else if (event.key === 'Backspace' || event.key === 'Delete') {
         handleNumberInput(0); // 0 for clear
         event.preventDefault();
-    } else if (event.key === 'n' || event.key === 'N') { // Toggle notes mode with 'N' key
-        notesModeButton.click();
-        event.preventDefault();
     }
+    // REMOVED: 'n' or 'N' key for notes mode
     else {
         switch (event.key) {
             case 'ArrowUp':
@@ -733,23 +755,8 @@ function highlightConflictingCells() {
 
 
 // --- Pencil Mark Management (User's Notes) ---
-function getNotesForCell(row, col) {
-    const key = `${row}-${col}`;
-    return cellNotes[key] || [];
-}
+// REMOVED: getNotesForCell, setNotesForCell, getNotesData
 
-function setNotesForCell(row, col, notesArray) {
-    const key = `${row}-${col}`;
-    if (notesArray.length === 0) {
-        delete cellNotes[key]; // Remove if no notes
-    } else {
-        cellNotes[key] = notesArray;
-    }
-}
-
-function getNotesData() {
-    return cellNotes;
-}
 
 // --- Candidate List Management (Auto-Generated) ---
 
@@ -830,16 +837,14 @@ function addHistory(row, col, oldValue, newValue, isPencilMarkChange) {
 }
 
 function undo() {
-    if (historyPointer < 0) return;
+    if (historyPointer < 0 || !gameStarted) return; // Only undo if game started
 
     const lastMove = history[historyPointer];
     const { row, col, oldValue, isPencilMarkChange } = lastMove;
 
-    if (isPencilMarkChange) {
-        setNotesForCell(row, col, oldValue);
-    } else {
-        currentBoard[row][col] = oldValue;
-    }
+    // isPencilMarkChange will always be false in this version
+    currentBoard[row][col] = oldValue;
+    
     recalculateAllCandidates(); // Recalculate candidates on undo
     updateCellDisplay();
     historyPointer--;
@@ -848,17 +853,15 @@ function undo() {
 }
 
 function redo() {
-    if (historyPointer >= history.length - 1) return;
+    if (historyPointer >= history.length - 1 || !gameStarted) return; // Only redo if game started
 
     historyPointer++;
     const nextMove = history[historyPointer];
     const { row, col, newValue, isPencilMarkChange } = nextMove;
 
-    if (isPencilMarkChange) {
-        setNotesForCell(row, col, newValue);
-    } else {
-        currentBoard[row][col] = newValue;
-    }
+    // isPencilMarkChange will always be false in this version
+    currentBoard[row][col] = newValue;
+    
     recalculateAllCandidates(); // Recalculate candidates on redo
     updateCellDisplay();
     updateUndoRedoButtons();
@@ -866,8 +869,8 @@ function redo() {
 }
 
 function updateUndoRedoButtons() {
-    undoButton.disabled = historyPointer < 0;
-    redoButton.disabled = historyPointer >= history.length - 1;
+    undoButton.disabled = historyPointer < 0 || !gameStarted;
+    redoButton.disabled = historyPointer >= history.length - 1 || !gameStarted;
 }
 
 // --- Custom Puzzle Input ---
@@ -926,7 +929,7 @@ function estimatePuzzleDifficulty(board) {
             if (hiddenSinglesApplied) {
                 changed = true;
                 currentRating = Math.max(currentRating, SOLVER_TECHNIQUES.HIDDEN_SINGLE);
-                 // Re-calculate candidates after placing values
+                // Re-calculate candidates after placing values
                 recalculateAllCandidatesForSolver(tempBoard, candidates);
             }
         }
@@ -1005,8 +1008,6 @@ function applyNakedSingles(board, candidates) {
                     const value = Array.from(cellPossibles)[0];
                     board[r][c] = value;
                     changed = true;
-                    // Remove this value from candidates in affected cells (simplified for solver context)
-                    // In real game, recalculateAffectedCandidates does this
                 }
             }
         }
@@ -1112,10 +1113,23 @@ function countEmptyCells(board) {
 
 // --- Game Action Functions ---
 
+function startGame() {
+    clearMessages();
+    startTimer();
+    gameStarted = true; // Mark game as started
+    statusMessage.textContent = 'Game in progress...';
+    toggleGameControls(true); // Enable controls and grid interaction
+    saveGame();
+}
+
 function handleNewGame() {
     const selectedDifficulty = document.querySelector('input[name="difficulty"]:checked').value;
     initializeGame(selectedDifficulty);
-    statusMessage.textContent = 'New game started!';
+    // After initializing, it's still in the "ready to start" state
+    statusMessage.textContent = 'New game generated. Click Start Game to begin!';
+    toggleGameControls(false); // Ensure controls are off after new puzzle generation
+    selectedCell = { row: -1, col: -1 }; // Deselect any cell
+    highlightSelectedCell();
 }
 
 function handleResetGame() {
@@ -1123,25 +1137,29 @@ function handleResetGame() {
     stopTimer();
     seconds = 0;
     updateTimerDisplay();
-    gameStarted = true;
+    gameStarted = true; // Still active after reset
     history = [];
     historyPointer = -1;
     updateUndoRedoButtons();
-    cellNotes = {}; // Clear user notes
+    // cellNotes = {}; // REMOVED: Clear user notes
     removeConflictHighlights();
     puzzleSolverRating = SOLVER_TECHNIQUES.DEFAULT; // Reset rating
 
-    // Reset currentBoard to the original puzzle state
     currentBoard = JSON.parse(JSON.stringify(initialBoard));
     renderBoard(currentBoard);
     recalculateAllCandidates(); // Recalculate candidates for the reset puzzle
     updateDifficultyRatingDisplay();
-    startTimer();
+    startTimer(); // Restart timer
     statusMessage.textContent = 'Game reset!';
-    saveGame(); // Save the reset state
+    saveGame();
+    toggleGameControls(true); // Ensure controls are enabled
 }
 
 function handleCheckGame() {
+    if (!gameStarted) {
+        errorMessage.textContent = "Start the game to check your progress.";
+        return;
+    }
     clearMessages();
     removeConflictHighlights(); // Clear any existing real-time conflict highlights
 
@@ -1172,18 +1190,23 @@ function handleCheckGame() {
 
 function handleSolveGame() {
     clearMessages();
-    if (!gameStarted && !isBoardFull(currentBoard)) { // Allow solving if game isn't started but board isn't full (e.g. custom puzzle validation)
-        errorMessage.textContent = "Start a game or load a valid custom puzzle before solving!";
+    // Allow solving if game isn't started but board has content (e.g. custom puzzle validation)
+    if (!gameStarted && isBoardFull(initialBoard) && getConflicts(initialBoard).length === 0) {
+        // This is a custom loaded puzzle that wasn't started, but can be solved
+    } else if (!gameStarted) { // If it's a generated puzzle not yet started
+        errorMessage.textContent = "Click 'Start Game' first, or 'New Game' to generate a puzzle.";
         return;
     }
+
     stopTimer();
     currentBoard = JSON.parse(JSON.stringify(solvedBoard)); // Set user board to solved state
     renderBoard(currentBoard); // Re-render with solved board
     statusMessage.textContent = 'Sudoku solved!';
-    gameStarted = false;
+    gameStarted = false; // Game is no longer active
     sudokuGrid.style.pointerEvents = 'none'; // Disable input after solving
     removeConflictHighlights();
     clearSavedGame(); // No need to save a solved game
+    toggleGameControls(false); // Disable controls after solve
 }
 
 function handleHint() {
@@ -1206,122 +1229,19 @@ function handleHint() {
         return;
     }
 
-    let hintFound = false;
-    let hintMessage = "";
+    shuffleArray(emptyCells); // Shuffle empty cells to pick a random one
+    const { r, c } = emptyCells[0]; // Pick the first (random) empty cell
+    const correctValue = solvedBoard[r][c]; // Get the correct value from the solved board
 
-    // Step 1: Try Naked Singles
-    for (let i = 0; i < emptyCells.length; i++) {
-        const { r, c } = emptyCells[i];
-        const cellKey = `${r}-${c}`;
-        const possibles = cellCandidates[cellKey] || new Set();
+    // Apply the hint
+    addHistory(r, c, currentBoard[r][c], correctValue, false);
+    currentBoard[r][c] = correctValue;
+    // setNotesForCell(r, c, []); // REMOVED: Clear notes
+    recalculateAffectedCandidates(r, c, correctValue); // Update candidates
 
-        if (possibles.size === 1) {
-            const hintValue = Array.from(possibles)[0];
-            addHistory(r, c, currentBoard[r][c], hintValue, false);
-            currentBoard[r][c] = hintValue;
-            setNotesForCell(r, c, []); // Clear notes
-            recalculateAffectedCandidates(r, c, hintValue); // Update candidates
-            hintMessage = `Hint: Found a **Naked Single**. Placed ${hintValue} at (${r + 1}, ${c + 1}).`;
-            hintFound = true;
-            break;
-        }
-    }
-
-    // Step 2: Try Hidden Singles if no Naked Single was found
-    if (!hintFound) {
-        const tempBoardForHint = JSON.parse(JSON.stringify(currentBoard));
-        const tempCandidatesForHint = calculateAllCandidates(tempBoardForHint); // Get fresh candidates
-
-        // Check rows for hidden singles
-        for (let r = 0; r < 9 && !hintFound; r++) {
-            for (let num = 1; num <= 9 && !hintFound; num++) {
-                let potentialCells = [];
-                for (let c = 0; c < 9; c++) {
-                    if (tempBoardForHint[r][c] === 0 && tempCandidatesForHint[`${r}-${c}`]?.has(num)) {
-                        potentialCells.push({ r, c });
-                    }
-                }
-                if (potentialCells.length === 1) {
-                    const { r: hintR, c: hintC } = potentialCells[0];
-                    addHistory(hintR, hintC, currentBoard[hintR][hintC], num, false);
-                    currentBoard[hintR][hintC] = num;
-                    setNotesForCell(hintR, hintC, []);
-                    recalculateAffectedCandidates(hintR, hintC, num);
-                    hintMessage = `Hint: Found a **Hidden Single** in row ${r + 1}. Placed ${num} at (${hintR + 1}, ${hintC + 1}).`;
-                    hintFound = true;
-                }
-            }
-        }
-
-        // Check columns for hidden singles
-        for (let c = 0; c < 9 && !hintFound; c++) {
-            for (let num = 1; num <= 9 && !hintFound; num++) {
-                let potentialCells = [];
-                for (let r = 0; r < 9; r++) {
-                    if (tempBoardForHint[r][c] === 0 && tempCandidatesForHint[`${r}-${c}`]?.has(num)) {
-                        potentialCells.push({ r, c });
-                    }
-                }
-                if (potentialCells.length === 1) {
-                    const { r: hintR, c: hintC } = potentialCells[0];
-                    addHistory(hintR, hintC, currentBoard[hintR][hintC], num, false);
-                    currentBoard[hintR][hintC] = num;
-                    setNotesForCell(hintR, hintC, []);
-                    recalculateAffectedCandidates(hintR, hintC, num);
-                    hintMessage = `Hint: Found a **Hidden Single** in column ${c + 1}. Placed ${num} at (${hintR + 1}, ${hintC + 1}).`;
-                    hintFound = true;
-                }
-            }
-        }
-
-        // Check blocks for hidden singles
-        for (let br = 0; br < 3 && !hintFound; br++) {
-            for (let bc = 0; bc < 3 && !hintFound; bc++) {
-                const startRow = br * 3;
-                const startCol = bc * 3;
-                for (let num = 1; num <= 9 && !hintFound; num++) {
-                    let potentialCells = [];
-                    for (let r_block = 0; r_block < 3; r_block++) {
-                        for (let c_block = 0; c_block < 3; c_block++) {
-                            const cellR = startRow + r_block;
-                            const cellC = startCol + c_block;
-                            if (tempBoardForHint[cellR][cellC] === 0 && tempCandidatesForHint[`${cellR}-${cellC}`]?.has(num)) {
-                                potentialCells.push({ r: cellR, c: cellC });
-                            }
-                        }
-                    }
-                    if (potentialCells.length === 1) {
-                        const { r: hintR, c: hintC } = potentialCells[0];
-                        addHistory(hintR, hintC, currentBoard[hintR][hintC], num, false);
-                        currentBoard[hintR][hintC] = num;
-                        setNotesForCell(hintR, hintC, []);
-                        recalculateAffectedCandidates(hintR, hintC, num);
-                        hintMessage = `Hint: Found a **Hidden Single** in block (${br + 1}, ${bc + 1}). Placed ${num} at (${hintR + 1}, ${hintC + 1}).`;
-                        hintFound = true;
-                    }
-                }
-            }
-        }
-    }
-
-
-    // Step 3: Fallback to simply placing the solved value if no specific technique applies
-    if (!hintFound) {
-        shuffleArray(emptyCells); // Shuffle again if original order was affected
-        const { r, c } = emptyCells[0];
-        const correctValue = solvedBoard[r][c];
-
-        addHistory(r, c, currentBoard[r][c], correctValue, false);
-        currentBoard[r][c] = correctValue;
-        setNotesForCell(r, c, []); // Clear notes
-        recalculateAffectedCandidates(r, c, correctValue); // Update candidates
-
-        hintMessage = `Hint: Placed ${correctValue} at (${r + 1}, ${c + 1}).`;
-        hintFound = true;
-    }
-
+    // Update UI and messages
     updateCellDisplay();
-    statusMessage.innerHTML = hintMessage; // Use innerHTML for bold tags
+    statusMessage.innerHTML = `Hint: Placed ${correctValue} at (${r + 1}, ${c + 1}).`;
     saveGame();
 
     // Check for win condition after hint
@@ -1334,11 +1254,12 @@ function handleHint() {
 function handleWinGame() {
     statusMessage.textContent = 'Congratulations! You solved the Sudoku!';
     stopTimer();
-    gameStarted = false;
+    gameStarted = false; // Game is no longer active
     sudokuGrid.style.pointerEvents = 'none'; // Disable further input
     finalTimeDisplay.textContent = timerDisplay.textContent.split(' ')[1]; // Extract time
     winModal.show();
     clearSavedGame(); // Game is won, clear save
+    toggleGameControls(false); // Disable controls after win
 }
 
 // Check if the current board is full
@@ -1373,7 +1294,10 @@ function toggleDarkMode() {
 
 
 // --- Event Listeners ---
-newGameButton.addEventListener('click', handleNewGame);
+// No longer automatically starts a game on load. User clicks "Start Game" or "New Game".
+startGameButton.addEventListener('click', startGame); // New listener
+newGameButton.addEventListener('click', handleNewGame); // Still exists to generate a new puzzle
+
 resetButton.addEventListener('click', handleResetGame);
 checkButton.addEventListener('click', handleCheckGame);
 solveButton.addEventListener('click', handleSolveGame);
@@ -1382,22 +1306,28 @@ redoButton.addEventListener('click', redo);
 hintButton.addEventListener('click', handleHint);
 darkModeToggle.addEventListener('click', toggleDarkMode); // New listener for dark mode
 
-notesModeButton.addEventListener('click', () => {
+// REMOVED notesModeButton event listener
+/* notesModeButton.addEventListener('click', () => {
+    if (!gameStarted) {
+        errorMessage.textContent = "Start the game to use Notes Mode.";
+        return;
+    }
     notesMode = !notesMode;
     notesModeButton.classList.toggle('active', notesMode);
     statusMessage.textContent = notesMode ? 'Notes Mode ON' : 'Notes Mode OFF';
     selectedCell = { row: -1, col: -1 }; // Deselect on mode change
     highlightSelectedCell();
-});
+}); */
 
 playAgainBtn.addEventListener('click', () => {
     winModal.hide();
-    handleNewGame(); // Start a new game on "Play Again"
+    handleNewGame(); // Generate new puzzle
+    toggleGameControls(false); // Make sure it's in the "ready to start" state
 });
 
 difficultyRadios.forEach(radio => {
     radio.addEventListener('change', () => {
-        handleNewGame(); // Automatically start a new game when difficulty changes
+        handleNewGame(); // Generate new puzzle based on difficulty
     });
 });
 
@@ -1413,21 +1343,24 @@ loadPuzzleButton.addEventListener('click', () => {
 getPuzzleStringButton.addEventListener('click', () => {
     const currentPuzzleString = getBoardAsString(initialBoard);
     puzzleStringOutput.textContent = currentPuzzleString;
-    statusMessage.textContent = 'Puzzle string copied to clipboard (manually copy from here).';
+    statusMessage.textContent = 'Puzzle string generated. Copy it manually.';
     // For automatic copy (requires user interaction in some browsers for security reasons):
     // navigator.clipboard.writeText(currentPuzzleString).then(() => {
-    //     statusMessage.textContent = 'Puzzle string copied to clipboard!';
+    //      statusMessage.textContent = 'Puzzle string copied to clipboard!';
     // }).catch(err => {
-    //     console.error('Failed to copy text: ', err);
-    //     statusMessage.textContent = 'Failed to copy to clipboard. Please copy manually.';
+    //      console.error('Failed to copy text: ', err);
+    //      statusMessage.textContent = 'Failed to copy to clipboard. Please copy manually.';
     // });
 });
 
 
-// Initial setup
+// Initial setup: Load game if available, otherwise initialize to a paused state.
+// The game will not start automatically.
 createNumberInputPad(); // Create number buttons on load
 
-// Try to load a saved game, otherwise start a new one
 if (!loadGame()) {
-    initializeGame('easy');
+    initializeGame('easy'); // Generates a puzzle but leaves gameStarted as false
 }
+
+// After load or initial generation, ensure controls are in the correct state
+toggleGameControls(gameStarted); // This will show/hide the start button and overlay correctly
