@@ -29,33 +29,36 @@
                     <label class="form-check-label" for="difficultyHard">Hard</label>
                 </div>
             </div>
-            <button id="new-game-btn" class="btn btn-primary me-2 mb-2"><i class="fas fa-plus me-1"></i> New Game</button>
-            <button id="reset-btn" class="btn btn-secondary me-2 mb-2"><i class="fas fa-undo me-1"></i> Reset</button>
-            <button id="check-btn" class="btn btn-info me-2 mb-2"><i class="fas fa-check me-1"></i> Check</button>
-            <button id="solve-btn" class="btn btn-success mb-2"><i class="fas fa-lightbulb me-1"></i> Solve</button>
+            <button id="start-game-btn" class="btn btn-success me-2 mb-2"><i class="fas fa-play me-1"></i> Start Game</button>
+            <button id="new-game-btn" class="btn btn-primary me-2 mb-2" style="display: none;"><i class="fas fa-plus me-1"></i> New Game</button>
+            <button id="reset-btn" class="btn btn-secondary me-2 mb-2" style="display: none;"><i class="fas fa-undo me-1"></i> Reset</button>
+            <button id="check-btn" class="btn btn-info me-2 mb-2" style="display: none;"><i class="fas fa-check me-1"></i> Check</button>
+            <button id="solve-btn" class="btn btn-success mb-2" style="display: none;"><i class="fas fa-lightbulb me-1"></i> Solve</button>
         </div>
 
         <div class="game-info d-flex justify-content-between align-items-center mb-3">
             <div id="timer" class="fs-4 text-primary"><i class="far fa-clock me-2"></i>00:00</div>
-            <div id="status-message" class="text-center fw-bold"></div>
+            <div id="status-message" class="text-center fw-bold">Ready to play!</div>
             <div id="difficulty-rating" class="text-muted small"></div>
         </div>
 
-        <div id="sudoku-grid" class="sudoku-grid">
+        <div id="sudoku-grid" class="sudoku-grid disabled-grid">
+            <div class="overlay" id="start-overlay">
+                <p>Click 'Start Game' to begin!</p>
             </div>
+        </div>
 
         <div id="error-message" class="error-message mt-3"></div>
 
-        <div class="additional-controls mt-4 d-flex justify-content-center flex-wrap gap-2">
+        <div class="additional-controls mt-4 d-flex justify-content-center flex-wrap gap-2" style="display: none;">
             <button id="undo-btn" class="btn btn-outline-dark"><i class="fas fa-reply me-1"></i> Undo</button>
             <button id="redo-btn" class="btn btn-outline-dark"><i class="fas fa-share me-1"></i> Redo</button>
-            <button id="notes-mode-btn" class="btn btn-outline-secondary"><i class="fas fa-pencil-alt me-1"></i> Notes Mode</button>
             <button id="hint-btn" class="btn btn-outline-warning"><i class="fas fa-question-circle me-1"></i> Hint</button>
             <button id="dark-mode-toggle" class="btn btn-outline-info"><i class="fas fa-moon me-1"></i> Dark Mode</button>
         </div>
 
-        <div class="number-input-pad mt-4 d-flex justify-content-center flex-wrap gap-2">
-            </div>
+        <div class="number-input-pad mt-4 d-flex justify-content-center flex-wrap gap-2" style="display: none;">
+        </div>
 
         <div class="custom-puzzle-section mt-4 pt-3 border-top">
             <h5 class="mb-3 text-center">Load Your Own Puzzle</h5>
