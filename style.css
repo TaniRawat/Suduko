@@ -1,78 +1,455 @@
-body {
-    font-family: Arial, sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-    background-color: #f0f0f0;
-  }
-  
-  .container {
-    text-align: center;
-  }
-  
-  h1 {
-    margin-bottom: 20px;
-  }
-  
-  .buttons {
-    margin-bottom: 20px;
-  }
-  
-  button {
-    padding: 10px 20px;
-    margin: 5px;
-    font-size: 16px;
-    cursor: pointer;
-  }
-  
-  .sudoku-grid {
-    display: grid;
-    grid-template-columns: repeat(9, 40px);
-    grid-template-rows: repeat(9, 40px);
-    gap: 2px;
-    justify-content: center;
-  }
-  
-  .sudoku-grid div {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 40px;
-    height: 40px;
-    background-color: white;
-    border: 1px solid #ccc;
-    font-size: 18px;
-  }
-  
-  .sudoku-grid .box {
-    border: 2px solid #000;
-  }
-  
-  .sudoku-grid .box:nth-child(3n+1) {
-    border-left: 2px solid #000;
-  }
-  
-  .sudoku-grid .box:nth-child(3n) {
-    border-right: 2px solid #000;
-  }
-  
-  .sudoku-grid .box:nth-child(n+19):nth-child(-n+27),
-  .sudoku-grid .box:nth-child(n+46):nth-child(-n+54),
-  .sudoku-grid .box:nth-child(n+73):nth-child(-n+81) {
-    border-bottom: 2px solid #000;
-  }
-  .sudoku-grid input {
-    width: 40px;
-    height: 40px;
-    font-size: 18px;
-    text-align: center;
-    border: 1px solid #ccc;
-    background-color: white;
+:root {
+    /* Light Mode Variables */
+    --body-bg-gradient-start: #e3f2fd;
+    --body-bg-gradient-end: #f1f8e9;
+    --dashboard-bg: #fff;
+    --dashboard-shadow: rgba(0, 0, 0, 0.15);
+    --text-color: #333;
+    --h1-color: #2c3e50;
+    --border-color-light: #c7d7e6;
+    --border-color-dark: #667e9c;
+    --grid-gap-bg: #34495e;
+    --fixed-cell-bg: #e0e7ee;
+    --fixed-cell-color: #2c3e50;
+    --selected-cell-bg: #cce5ff;
+    --selected-cell-border: #007bff;
+    --highlight-group-bg: #e6f2ff;
+    --highlight-same-bg: #f0f8ff;
+    --conflict-bg: #ffcccc;
+    --conflict-color: #dc3545;
+    --error-check-bg: #ffe0e0;
+    --error-check-color: #dc3545;
+    --notes-color: #6c757d;
+    --notes-mode-active-bg: #ffc107;
+    --notes-mode-active-color: #212529;
+    --number-btn-bg: #0d6efd;
+    --number-btn-hover-bg: #0b5ed7;
+    --secondary-btn-bg: #6c757d;
+    --secondary-btn-hover-bg: #5c636a;
 }
 
-.sudoku-grid input:focus {
-    outline: none;
-    border: 1px solid #007bff;
+/* Dark Mode Variables */
+body.dark-mode {
+    --body-bg-gradient-start: #1a2a3a;
+    --body-bg-gradient-end: #2a3a4a;
+    --dashboard-bg: #2c3e50;
+    --dashboard-shadow: rgba(0, 0, 0, 0.5);
+    --text-color: #ecf0f1;
+    --h1-color: #ecf0f1;
+    --border-color-light: #4a6279;
+    --border-color-dark: #829cb5;
+    --grid-gap-bg: #1f2a35;
+    --fixed-cell-bg: #3a4b5d;
+    --fixed-cell-color: #bdc3c7;
+    --selected-cell-bg: #4a6c8e;
+    --selected-cell-border: #7db0e2;
+    --highlight-group-bg: #3a526a;
+    --highlight-same-bg: #33485e;
+    --conflict-bg: #8b0000;
+    --conflict-color: #ffe0e0;
+    --error-check-bg: #9b0000;
+    --error-check-color: #ffe0e0;
+    --notes-color: #b0b0b0;
+    --notes-mode-active-bg: #d4a700;
+    --notes-mode-active-color: #1a2a3a;
+    --number-btn-bg: #1a71da;
+    --number-btn-hover-bg: #125bb3;
+    --secondary-btn-bg: #5a6d80;
+    --secondary-btn-hover-bg: #4c5d6f;
+}
+
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(to right, var(--body-bg-gradient-start), var(--body-bg-gradient-end));
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+    color: var(--text-color);
+    transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+.dashboard {
+    width: 95%;
+    max-width: 850px;
+    background-color: var(--dashboard-bg);
+    border-radius: 15px;
+    padding: 2.5rem;
+    box-shadow: 0 15px 35px var(--dashboard-shadow);
+    text-align: center;
+    animation: fadeIn 0.8s ease-out;
+    transition: background-color 0.5s ease, box-shadow 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+h1 {
+    font-weight: bold;
+    color: var(--h1-color);
+    margin-bottom: 30px;
+    font-size: 2.5rem;
+    transition: color 0.5s ease;
+}
+
+.game-controls, .game-info, .additional-controls, .custom-puzzle-section {
+    margin-bottom: 25px;
+}
+.custom-puzzle-section {
+    border-top: 1px solid var(--border-color-light); /* Added for clarity */
+    padding-top: 20px;
+}
+
+.difficulty-selection .form-check-label {
+    font-weight: 500;
+    color: var(--text-color); /* Adjusted for consistency */
+}
+
+.btn {
+    min-width: 120px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.btn-primary, .btn-secondary, .btn-info, .btn-success, .btn-warning {
+    /* For specific Bootstrap buttons, manage their colors explicitly or override vars */
+    color: var(--text-color); /* Ensure text color is readable */
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+#timer {
+    font-family: 'Roboto Mono', monospace;
+    font-weight: bold;
+    color: var(--number-btn-bg); /* Use a primary color variable */
+}
+
+#status-message {
+    color: #28a745; /* Green for success, fixed as it's a positive feedback */
+    font-size: 1.1rem;
+    min-height: 20px;
+}
+
+#error-message {
+    color: var(--conflict-color); /* Red for errors */
+    font-size: 1rem;
+    min-height: 20px;
+}
+#difficulty-rating {
+    color: var(--notes-color);
+}
+
+.sudoku-grid {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 0; /* No gap for seamless borders */
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    border: 3px solid var(--grid-gap-bg); /* Main outer border */
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    background-color: var(--grid-gap-bg); /* The color of the thick grid lines */
+    position: relative;
+    /* Ensure no gaps are created by grid-gap */
+    grid-template-rows: repeat(9, 1fr);
+}
+
+.sudoku-cell {
+    width: 100%;
+    padding-bottom: 100%; /* Makes cells square */
+    position: relative;
+    background-color: var(--dashboard-bg); /* Cell background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.8rem;
+    font-weight: 500;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+    border: 1px solid var(--border-color-light); /* Default cell border */
+    box-sizing: border-box;
+    /* Ensure the borders are drawn correctly for each cell */
+    margin: 0;
+}
+
+/* Specific borders for 3x3 blocks */
+/* Apply thick right border */
+.sudoku-cell:nth-child(3n) { border-right-width: 3px; border-right-color: var(--grid-gap-bg); }
+.sudoku-cell:nth-child(9n) { border-right-width: 1px; border-right-color: var(--border-color-light); } /* Reset for last column */
+
+/* Apply thick bottom border */
+.sudoku-cell:nth-child(n+19):nth-child(-n+27), /* 3rd row */
+.sudoku-cell:nth-child(n+46):nth-child(-n+54) { /* 6th row */
+    border-bottom-width: 3px;
+    border-bottom-color: var(--grid-gap-bg);
+}
+.sudoku-cell:nth-child(n+73) { /* Reset for last row */
+    border-bottom-width: 1px;
+    border-bottom-color: var(--border-color-light);
+}
+
+/* Apply thick left border for 3x3 blocks */
+.sudoku-cell:nth-child(9n + 1):nth-child(n + 1), /* First cell in each row always */
+.sudoku-cell:nth-child(9n + 4),
+.sudoku-cell:nth-child(9n + 7) {
+    border-left-width: 3px;
+    border-left-color: var(--grid-gap-bg);
+}
+
+/* Apply thick top border for 3x3 blocks */
+.sudoku-cell:nth-child(n):nth-child(-n + 9), /* First row cells */
+.sudoku-cell:nth-child(n + 19):nth-child(-n + 27), /* Cells below the 2nd thick horizontal line */
+.sudoku-cell:nth-child(n + 46):nth-child(-n + 54) { /* Cells below the 4th thick horizontal line */
+    /* This might be tricky with just nth-child. For perfect grid, it's better to add classes programmatically */
+}
+
+/* More direct approach for inner 3x3 borders (if gaps are desired)
+   If gap: 0, then the "gaps" are handled by background-color of .sudoku-grid and border of .sudoku-cell
+   This nth-child approach can get very complex for all 4 sides of the 3x3 blocks.
+   A programmatic approach of adding a class like 'block-border-bottom', 'block-border-right' etc.
+   to cells would be cleaner for more complex border logic if gap:0 is used.
+*/
+
+
+.cell-value {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+    line-height: 1; /* Ensure perfect vertical centering */
+}
+
+.fixed-cell {
+    background-color: var(--fixed-cell-bg);
+    font-weight: bold;
+    color: var(--fixed-cell-color);
+    cursor: not-allowed;
+}
+
+/* Cell selection highlights */
+.sudoku-cell.selected {
+    background-color: var(--selected-cell-bg) !important; /* Use !important to override other highlights */
+    border: 2px solid var(--selected-cell-border) !important;
+    z-index: 2; /* Ensure selected is on top */
+}
+
+.sudoku-cell.highlight-group {
+    background-color: var(--highlight-group-bg);
+}
+
+.sudoku-cell.highlight-same {
+    background-color: var(--highlight-same-bg);
+}
+
+/* Real-time conflict/error highlighting */
+.sudoku-cell.conflict {
+    background-color: var(--conflict-bg) !important;
+    color: var(--conflict-color) !important;
+    font-weight: bold;
+}
+.sudoku-cell.error-check { /* For 'Check' button errors */
+    background-color: var(--error-check-bg) !important;
+    color: var(--error-check-color) !important;
+}
+
+
+/* Pencil marks */
+.pencil-marks {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    width: 100%;
+    height: 100%;
+    font-size: 0.7em;
+    color: var(--notes-color);
+    text-align: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    /* Adjust padding/line-height for better centering */
+    line-height: 1.2;
+    padding: 2px;
+}
+
+.pencil-mark {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* Adjust margin for better spacing within the 3x3 grid of notes */
+    margin: 1px;
+}
+
+/* Number input pad */
+.number-input-pad {
+    margin-top: 20px;
+}
+
+.number-input-pad .btn {
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--number-btn-bg);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.number-input-pad .btn:hover {
+    background-color: var(--number-btn-hover-bg);
+    transform: translateY(-2px);
+}
+
+.number-input-pad .btn-secondary {
+    background-color: var(--secondary-btn-bg);
+}
+
+.number-input-pad .btn-secondary:hover {
+    background-color: var(--secondary-btn-hover-bg);
+}
+
+/* Notes mode active styling */
+#notes-mode-btn.active {
+    background-color: var(--notes-mode-active-bg);
+    color: var(--notes-mode-active-color);
+    border-color: var(--notes-mode-active-bg);
+}
+#dark-mode-toggle .fas {
+    font-size: 1.2em; /* Ensure icon is visible */
+}
+
+/* Win Modal Styling */
+.modal-content {
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    background-color: var(--dashboard-bg); /* Modal background */
+    color: var(--text-color);
+}
+
+.modal-header {
+    background-color: #28a745; /* Fixed green for success */
+    color: white;
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+}
+.modal-title {
+    color: white;
+}
+.modal-body {
+    background-color: var(--dashboard-bg);
+    color: var(--text-color);
+}
+
+.modal-footer {
+    border-bottom-left-radius: 15px;
+    border-bottom-right-radius: 15px;
+    background-color: var(--dashboard-bg);
+    border-top: 1px solid var(--border-color-light);
+}
+
+.animate-trophy {
+    animation: bounceIn 1s ease-out;
+}
+
+@keyframes bounceIn {
+    0% { transform: scale(0.1); opacity: 0; }
+    60% { transform: scale(1.1); opacity: 1; }
+    80% { transform: scale(0.9); }
+    100% { transform: scale(1); }
+}
+
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .dashboard {
+        padding: 1.5rem;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    .game-controls, .additional-controls {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+        margin-right: 0 !important;
+        margin-bottom: 10px !important;
+        min-width: unset;
+    }
+
+    .difficulty-selection {
+        margin-bottom: 15px;
+    }
+
+    .sudoku-cell {
+        font-size: 1.5rem;
+        height: unset;
+        padding-bottom: 100%;
+    }
+
+    .pencil-marks {
+        font-size: 0.6em; /* Even smaller for small screens */
+    }
+
+    .number-input-pad .btn {
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+    }
+    .custom-puzzle-section .btn {
+        min-width: unset; /* Allow these buttons to size based on content */
+        width: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard {
+        padding: 1rem;
+    }
+
+    h1 {
+        font-size: 1.8rem;
+    }
+
+    .sudoku-grid {
+        max-width: 300px;
+    }
+
+    .sudoku-cell {
+        font-size: 1.2rem;
+    }
+
+    .pencil-marks {
+        font-size: 0.55em;
+    }
+
+    .number-input-pad .btn {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
 }
