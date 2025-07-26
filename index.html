@@ -1,24 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku Master</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <title>Sudoku Game</title>
 </head>
+
 <body>
-    <div class="sudoku-container">
-        <h1>Sudoku Game</h1>
-        <div id="sudoku-grid" class="sudoku-grid"></div>
-        <div id="error-message"></div>
-        <div class="button-container">
-            <button id="easy" aria-label="Start easy level">Easy</button>
-            <button id="medium" aria-label="Start medium level">Medium</button>
-            <button id="hard" aria-label="Start hard level">Hard</button>
-            <button id="solve" aria-label="Solve the Sudoku">Solve Game</button>
-            <button id="reset" aria-label="Reset the game">Reset</button> <!-- Optional reset button -->
+    <div class="dashboard">
+        <h1 class="mb-4"><i class="fas fa-puzzle-piece me-2"></i> Sudoku Master</h1>
+
+        <div class="game-controls d-flex flex-wrap justify-content-center align-items-center mb-4">
+            <div class="difficulty-selection me-3 mb-2">
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="difficulty" id="difficultyEasy" value="easy" checked>
+                    <label class="form-check-label" for="difficultyEasy">Easy</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="difficulty" id="difficultyMedium" value="medium">
+                    <label class="form-check-label" for="difficultyMedium">Medium</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="difficulty" id="difficultyHard" value="hard">
+                    <label class="form-check-label" for="difficultyHard">Hard</label>
+                </div>
+            </div>
+            <button id="new-game-btn" class="btn btn-primary me-2 mb-2"><i class="fas fa-plus me-1"></i> New Game</button>
+            <button id="reset-btn" class="btn btn-secondary me-2 mb-2"><i class="fas fa-undo me-1"></i> Reset</button>
+            <button id="check-btn" class="btn btn-info me-2 mb-2"><i class="fas fa-check me-1"></i> Check</button>
+            <button id="solve-btn" class="btn btn-success mb-2"><i class="fas fa-lightbulb me-1"></i> Solve</button>
+        </div>
+
+        <div class="game-info d-flex justify-content-between align-items-center mb-3">
+            <div id="timer" class="fs-4 text-primary"><i class="far fa-clock me-2"></i>00:00</div>
+            <div id="status-message" class="text-center fw-bold"></div>
+            <div id="difficulty-rating" class="text-muted small"></div>
+        </div>
+
+        <div id="sudoku-grid" class="sudoku-grid">
+            </div>
+
+        <div id="error-message" class="error-message mt-3"></div>
+
+        <div class="additional-controls mt-4 d-flex justify-content-center flex-wrap gap-2">
+            <button id="undo-btn" class="btn btn-outline-dark"><i class="fas fa-reply me-1"></i> Undo</button>
+            <button id="redo-btn" class="btn btn-outline-dark"><i class="fas fa-share me-1"></i> Redo</button>
+            <button id="notes-mode-btn" class="btn btn-outline-secondary"><i class="fas fa-pencil-alt me-1"></i> Notes Mode</button>
+            <button id="hint-btn" class="btn btn-outline-warning"><i class="fas fa-question-circle me-1"></i> Hint</button>
+            <button id="dark-mode-toggle" class="btn btn-outline-info"><i class="fas fa-moon me-1"></i> Dark Mode</button>
+        </div>
+
+        <div class="number-input-pad mt-4 d-flex justify-content-center flex-wrap gap-2">
+            </div>
+
+        <div class="custom-puzzle-section mt-4 pt-3 border-top">
+            <h5 class="mb-3 text-center">Load Your Own Puzzle</h5>
+            <textarea id="puzzle-input" class="form-control mb-2" rows="2" placeholder="Enter an 81-character Sudoku string (0 for empty cells)..."></textarea>
+            <div class="d-flex justify-content-center gap-2">
+                <button id="load-puzzle-btn" class="btn btn-outline-primary"><i class="fas fa-upload me-1"></i> Load Puzzle</button>
+                <button id="get-puzzle-string-btn" class="btn btn-outline-info"><i class="fas fa-download me-1"></i> Get Puzzle String</button>
+            </div>
+            <div id="puzzle-string-output" class="text-muted mt-2 small text-break"></div>
+        </div>
+
+
+        <div class="text-center section mt-4">
+            <p class="text-muted">Built with ❤️ for puzzle lovers - <strong>Sudoku Master</strong></p>
         </div>
     </div>
-    <script src="script.js"></script> <!-- Make sure to include your script file -->
+
+    <div class="modal fade" id="winModal" tabindex="-1" aria-labelledby="winModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="winModalLabel">Congratulations!</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <i class="fas fa-trophy text-warning fa-4x mb-3 animate-trophy"></i>
+                    <p class="fs-4">You solved the Sudoku!</p>
+                    <p class="fs-5">Your time: <strong id="final-time">00:00</strong></p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="play-again-btn">Play Again</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
 </body>
+
 </html>
