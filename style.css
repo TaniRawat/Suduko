@@ -1,0 +1,78 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #f0f0f0;
+  }
+  
+  .container {
+    text-align: center;
+  }
+  
+  h1 {
+    margin-bottom: 20px;
+  }
+  
+  .buttons {
+    margin-bottom: 20px;
+  }
+  
+  button {
+    padding: 10px 20px;
+    margin: 5px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  
+  .sudoku-grid {
+    display: grid;
+    grid-template-columns: repeat(9, 40px);
+    grid-template-rows: repeat(9, 40px);
+    gap: 2px;
+    justify-content: center;
+  }
+  
+  .sudoku-grid div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    height: 40px;
+    background-color: white;
+    border: 1px solid #ccc;
+    font-size: 18px;
+  }
+  
+  .sudoku-grid .box {
+    border: 2px solid #000;
+  }
+  
+  .sudoku-grid .box:nth-child(3n+1) {
+    border-left: 2px solid #000;
+  }
+  
+  .sudoku-grid .box:nth-child(3n) {
+    border-right: 2px solid #000;
+  }
+  
+  .sudoku-grid .box:nth-child(n+19):nth-child(-n+27),
+  .sudoku-grid .box:nth-child(n+46):nth-child(-n+54),
+  .sudoku-grid .box:nth-child(n+73):nth-child(-n+81) {
+    border-bottom: 2px solid #000;
+  }
+  .sudoku-grid input {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    text-align: center;
+    border: 1px solid #ccc;
+    background-color: white;
+}
+
+.sudoku-grid input:focus {
+    outline: none;
+    border: 1px solid #007bff;
+}
