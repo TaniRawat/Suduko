@@ -1,0 +1,11 @@
+This input field expects a string of 81 digits (0-9), where 0 represents an empty cell.
+Here are a few examples of Sudoku puzzle strings you can use, ranging from easy to hard. Just copy and paste one of these directly into the input box:
+
+1. Easy Sudoku Puzzle String:
+003020600900305001001806400008102900700000008006708200002609500800203009005010300
+
+2. Medium Sudoku Puzzle String:
+000000000000000000000000000000000000000000000000000000000000000000000000000000001
+
+3. Hard Sudoku Puzzle String:
+800000000003600000070090200050007000000045700000100030001000068008500010900000400
